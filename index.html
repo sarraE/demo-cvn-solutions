@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CVN Solutions — Admin Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { background: #ffffff; border-right: 0.5px solid #e0ddd5; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sb-header { padding: 1.25rem 1rem; border-bottom: 0.5px solid #e0ddd5; }
+    .sb-logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .sb-logo span { color: #185FA5; }
+    .sb-env { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 11px; background: #EAF3DE; color: #27500A; padding: 2px 9px; border-radius: 20px; font-weight: 500; }
+    .sb-dot { width: 6px; height: 6px; border-radius: 50%; background: #639922; }
+    .nav { flex: 1; padding: 0.5rem 0; }
+    .nav-section { font-size: 10px; color: #888780; padding: 10px 1rem 4px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1rem; font-size: 13px; color: #5F5E5A; cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; user-select: none; }
+    .nav-item:hover { background: #f5f5f0; color: #1a1a1a; }
+    .nav-item.active { color: #185FA5; border-left-color: #185FA5; background: #E6F1FB; font-weight: 500; }
+    .nav-ico { width: 16px; height: 16px; flex-shrink: 0; }
+    .sb-user { padding: 0.875rem 1rem; border-top: 0.5px solid #e0ddd5; display: flex; align-items: center; gap: 9px; }
+    .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .av-blue   { background: #E6F1FB; color: #0C447C; }
+    .av-teal   { background: #E1F5EE; color: #085041; }
+    .av-coral  { background: #FAECE7; color: #712B13; }
+    .av-purple { background: #EEEDFE; color: #3C3489; }
+    .av-amber  { background: #FAEEDA; color: #633806; }
+    .av-green  { background: #EAF3DE; color: #27500A; }
+    .sb-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+    .sb-role { font-size: 10px; color: #888780; margin-top: 1px; }
+
+    /* ── Main ── */
+    .main { display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0.875rem 1.5rem; background: #ffffff; border-bottom: 0.5px solid #e0ddd5; position: sticky; top: 0; z-index: 10; }
+    .page-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .content { padding: 1.25rem 1.5rem; flex: 1; }
+
+    /* ── Pills ── */
+    .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+    .pill-green  { background: #EAF3DE; color: #27500A; }
+    .pill-blue   { background: #E6F1FB; color: #0C447C; }
+    .pill-amber  { background: #FAEEDA; color: #633806; }
+    .pill-red    { background: #FCEBEB; color: #791F1F; }
+    .pill-gray   { background: #F1EFE8; color: #444441; }
+
+    /* ── Metric cards ── */
+    .metrics { display: grid; gap: 10px; margin-bottom: 1rem; }
+    .metrics-4 { grid-template-columns: repeat(4, 1fr); }
+    .metrics-3 { grid-template-columns: repeat(3, 1fr); }
+    .mc { background: #ffffff; border: 0.5px solid #e0ddd5; border-radius: 8px; padding: 0.875rem 1rem; }
+    .mc-ico { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .mc-label { font-size: 11px; color: #888780; margin-bottom: 4px; }
+    .mc-val { font-size: 24px; font-weight: 600; color: #1a1a1a; line-height: 1; }
+    .mc-val small { font-size: 14px; color: #888780; font-weight: 400; }
+    .mc-sub { font-size: 11px; margin-top: 4px; }
+    .mc-sub.up { color: #3B6D11; }
+    .mc-sub.dn { color: #A32D2D; }
+    .mc-sub.neutral { color: #888780; }
+
+    /* ── Cards ── */
+    .card { background: #ffffff; border: 0.5px solid #e0ddd5; border-radius: 10px; padding: 1rem 1.125rem; }
+    .card-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 0.875rem; }
+    .grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 10px; margin-bottom: 1rem; }
+    .grid2-eq { grid-template-columns: 1fr 1fr; }
+
+    /* ── Bar chart ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 75px; }
+    .b-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .b-bar { width: 100%; border-radius: 3px 3px 0 0; background: #378ADD; opacity: 0.75; }
+    .b-lbl { font-size: 9px; color: #888780; }
+
+    /* ── Timeline ── */
+    .timeline { padding-left: 4px; }
+    .tl-item { display: flex; gap: 10px; margin-bottom: 12px; }
+    .tl-item:last-child { margin-bottom: 0; }
+    .tl-left { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .tl-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid; flex-shrink: 0; margin-top: 3px; }
+    .tl-dot.ok   { background: #EAF3DE; border-color: #639922; }
+    .tl-dot.fail { background: #FCEBEB; border-color: #E24B4A; }
+    .tl-dot.run  { background: #FAEEDA; border-color: #BA7517; }
+    .tl-line { width: 1.5px; flex: 1; background: #e0ddd5; margin-top: 4px; }
+    .tl-text { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+    .tl-sub  { font-size: 11px; color: #888780; margin-top: 1px; }
+
+    /* ── Stack items ── */
+    .stack-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid #e0ddd5; }
+    .stack-item:last-child { border-bottom: none; }
+    .stack-left { display: flex; align-items: center; gap: 10px; }
+    .stack-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+    .stack-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+    .stack-desc { font-size: 11px; color: #888780; }
+
+    /* ── Users table ── */
+    .users-tbl { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+    .users-tbl th { text-align: left; color: #888780; font-size: 11px; font-weight: 600; padding: 0 0 9px; border-bottom: 0.5px solid #e0ddd5; }
+    .users-tbl td { padding: 9px 0; border-bottom: 0.5px solid #e0ddd5; vertical-align: middle; color: #1a1a1a; }
+    .users-tbl tr:last-child td { border-bottom: none; }
+    .user-cell { display: flex; align-items: center; gap: 8px; }
+    .u-name  { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+    .u-email { font-size: 10px; color: #888780; }
+    .action-btn { font-size: 11px; padding: 3px 9px; border: 0.5px solid #e0ddd5; border-radius: 6px; background: transparent; color: #5F5E5A; cursor: pointer; margin-right: 4px; transition: background 0.1s; }
+    .action-btn:hover { background: #f5f5f0; }
+    .action-btn.danger { color: #A32D2D; border-color: #F09595; }
+    .action-btn.success { color: #3B6D11; border-color: #97C459; }
+
+    /* ── JWT / Security ── */
+    .jwt-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 0.5px solid #e0ddd5; }
+    .jwt-item:last-child { border-bottom: none; }
+    .jwt-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+
+    /* ── Role matrix ── */
+    .role-matrix { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .role-matrix th { text-align: center; padding: 7px 6px; color: #888780; font-size: 11px; font-weight: 600; border-bottom: 0.5px solid #e0ddd5; }
+    .role-matrix th:first-child { text-align: left; }
+    .role-matrix td { text-align: center; padding: 7px 6px; border-bottom: 0.5px solid #e0ddd5; color: #1a1a1a; font-size: 12px; }
+    .role-matrix td:first-child { text-align: left; color: #5F5E5A; font-size: 11px; }
+    .role-matrix tr:last-child td { border-bottom: none; }
+    .check { color: #3B6D11; font-weight: 700; }
+    .cross { color: #A32D2D; }
+
+    /* ── Pipeline ── */
+    .pipe-header { display: flex; gap: 3px; margin-bottom: 4px; }
+    .ph-cell { flex: 1; text-align: center; font-size: 9px; color: #888780; padding: 2px; }
+    .ph-cell.name-col { flex: 0 0 115px; }
+    .pipe-row { display: flex; align-items: center; gap: 3px; margin-bottom: 6px; }
+    .pipe-name { flex: 0 0 115px; }
+    .pipe-branch { font-size: 10px; color: #185FA5; background: #E6F1FB; padding: 1px 6px; border-radius: 10px; }
+    .pipe-ref { font-size: 11px; color: #5F5E5A; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stages { display: flex; gap: 3px; flex: 1; }
+    .st { flex: 1; height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
+    .st.ok   { background: #EAF3DE; color: #27500A; }
+    .st.fail { background: #FCEBEB; color: #791F1F; }
+    .st.run  { background: #FAEEDA; color: #633806; }
+    .st.skip { background: #F1EFE8; color: #888780; }
+    .pipe-dur { font-size: 10px; color: #888780; flex: 0 0 42px; text-align: right; }
+    .pipe-legend { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid #e0ddd5; }
+    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #888780; }
+    .leg-dot { width: 9px; height: 9px; border-radius: 2px; }
+
+    /* ── Monitoring ── */
+    .prom-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .prom-label { font-size: 12px; color: #5F5E5A; width: 130px; flex-shrink: 0; }
+    .prom-track { flex: 1; height: 6px; background: #F1EFE8; border-radius: 3px; }
+    .prom-fill { height: 6px; border-radius: 3px; }
+    .prom-val { font-size: 12px; font-weight: 600; color: #1a1a1a; width: 50px; text-align: right; }
+    .gauge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+    .gauge-card { background: #f5f5f0; border-radius: 8px; padding: 0.875rem; text-align: center; }
+    .gauge-val { font-size: 26px; font-weight: 700; line-height: 1; }
+    .gauge-val.green { color: #3B6D11; }
+    .gauge-val.amber { color: #854F0B; }
+    .gauge-val.red   { color: #A32D2D; }
+    .gauge-lbl { font-size: 11px; color: #888780; margin-top: 4px; }
+    .gauge-sub { font-size: 10px; color: #5F5E5A; margin-top: 2px; }
+
+    /* ── SonarQube ── */
+    .sonar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+    .sonar-item { background: #f5f5f0; border-radius: 8px; padding: 0.875rem; text-align: center; }
+    .sonar-grade { font-size: 22px; font-weight: 700; }
+    .grade-a { color: #3B6D11; }
+    .grade-b { color: #639922; }
+    .grade-d { color: #A32D2D; }
+    .grade-e { color: #791F1F; }
+    .sonar-count { font-size: 20px; font-weight: 700; color: #1a1a1a; }
+    .sonar-label { font-size: 11px; color: #888780; margin-top: 3px; }
+
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">CVN <span>Solutions</span> Inc.</div>
+      <div class="sb-env"><div class="sb-dot"></div> Production · v2.4.1</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">Application</div>
+      <div class="nav-item active" onclick="nav(this,'overview')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor"/>
+          <rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor"/>
+        </svg>
+        Vue d'ensemble
+      </div>
+      <div class="nav-item" onclick="nav(this,'users')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="5" r="3.2" fill="currentColor"/>
+          <path d="M1.5 14c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Utilisateurs
+      </div>
+      <div class="nav-item" onclick="nav(this,'security')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1L2 3.8v5C2 12 5 14.5 8 15c3-.5 6-3 6-6.2V3.8L8 1z" fill="currentColor"/>
+        </svg>
+        Sécurité / JWT
+      </div>
+
+      <div class="nav-section">DevOps</div>
+      <div class="nav-item" onclick="nav(this,'pipeline')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <circle cx="3" cy="8" r="2.2" fill="currentColor"/>
+          <circle cx="13" cy="3.5" r="2.2" fill="currentColor"/>
+          <circle cx="13" cy="12.5" r="2.2" fill="currentColor"/>
+          <path d="M5.2 8h4M9.2 8L11 3.5M9.2 8L11 12.5" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Pipeline CI/CD
+      </div>
+      <div class="nav-item" onclick="nav(this,'monitoring')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <polyline points="1,12 4.5,7.5 7.5,10 11,4 15,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        Monitoring
+      </div>
+      <div class="nav-item" onclick="nav(this,'sonar')">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        SonarQube
+      </div>
+    </nav>
+
+    <div class="sb-user">
+      <div class="av av-blue">SE</div>
+      <div>
+        <div class="sb-name">Sarra Elkamel</div>
+        <div class="sb-role">Ingénieure Logiciel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Vue d'ensemble</div>
+      <div class="topbar-right">
+        <span class="pill pill-green">Prod live</span>
+        <span class="pill pill-blue">Spring Boot 3.2</span>
+        <span class="pill pill-gray">Angular 17</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══ OVERVIEW ══ -->
+      <div id="section-overview" class="section active">
+        <div class="metrics metrics-4">
+          <div class="mc">
+            <div class="mc-ico" style="background:#E6F1FB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" fill="#185FA5"/><path d="M1.5 14c0-3 3-5 6.5-5s6.5 2 6.5 5" stroke="#185FA5" stroke-width="1.4"/></svg>
+            </div>
+            <div class="mc-label">Utilisateurs actifs</div>
+            <div class="mc-val">1 248</div>
+            <div class="mc-sub up">+12% ce mois</div>
+          </div>
+          <div class="mc">
+            <div class="mc-ico" style="background:#EAF3DE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="1,12 5,7.5 8,10 11.5,4 15,8" stroke="#3B6D11" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
+            </div>
+            <div class="mc-label">Uptime</div>
+            <div class="mc-val">99.8<small>%</small></div>
+            <div class="mc-sub up">30 derniers jours</div>
+          </div>
+          <div class="mc">
+            <div class="mc-ico" style="background:#FAEEDA">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#854F0B" stroke-width="1.4"/><path d="M5.5 8h5M8 5.5v5" stroke="#854F0B" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <div class="mc-label">Builds Jenkins</div>
+            <div class="mc-val">94<small>%</small></div>
+            <div class="mc-sub up">Taux de succès</div>
+          </div>
+          <div class="mc">
+            <div class="mc-ico" style="background:#FCEBEB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v4M8 10v.5" stroke="#A32D2D" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8" r="6.5" stroke="#A32D2D" stroke-width="1.4"/></svg>
+            </div>
+            <div class="mc-label">Incidents ouverts</div>
+            <div class="mc-val">2</div>
+            <div class="mc-sub dn">1 critique · 1 mineur</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">Déploiements cette semaine</div>
+            <div class="bar-chart">
+              <div class="b-wrap"><div class="b-bar" style="height:38px"></div><div class="b-lbl">Lun</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:60px"></div><div class="b-lbl">Mar</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:28px"></div><div class="b-lbl">Mer</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:68px"></div><div class="b-lbl">Jeu</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:48px"></div><div class="b-lbl">Ven</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:18px"></div><div class="b-lbl">Sam</div></div>
+              <div class="b-wrap"><div class="b-bar" style="height:10px"></div><div class="b-lbl">Dim</div></div>
+            </div>
+            <div style="margin-top:1.25rem">
+              <div class="card-title">Activité récente</div>
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-left"><div class="tl-dot ok"></div><div class="tl-line"></div></div>
+                  <div><div class="tl-text">Déploiement release/v2.4.1 réussi</div><div class="tl-sub">Il y a 2h · Jenkins #88 · Docker + Compose</div></div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-left"><div class="tl-dot fail"></div><div class="tl-line"></div></div>
+                  <div><div class="tl-text">SonarQube gate échoué — fix/auth-bug</div><div class="tl-sub">Il y a 5h · 25 bugs · Quality Gate bloqué</div></div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-left"><div class="tl-dot ok"></div><div class="tl-line"></div></div>
+                  <div><div class="tl-text">Image Docker poussée sur Nexus</div><div class="tl-sub">Il y a 6h · cvn-backend:2.4.0</div></div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-left"><div class="tl-dot run"></div></div>
+                  <div><div class="tl-text">Refactoring API · Pipeline en cours</div><div class="tl-sub">Démarré il y a 14 min · JaCoCo en cours</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Stack technique</div>
+            <div class="stack-item">
+              <div class="stack-left">
+                <div class="stack-ico" style="background:#E6F1FB;color:#0C447C">SB</div>
+                <div><div class="stack-name">Spring Boot 3.2</div><div class="stack-desc">Backend · Spring Security · JWT</div></div>
+              </div>
+              <span class="pill pill-green">Actif</span>
+            </div>
+            <div class="stack-item">
+              <div class="stack-left">
+                <div class="stack-ico" style="background:#FCEBEB;color:#791F1F">NG</div>
+                <div><div class="stack-name">Angular 17</div><div class="stack-desc">Frontend · TypeScript · RxJS</div></div>
+              </div>
+              <span class="pill pill-green">Actif</span>
+            </div>
+            <div class="stack-item">
+              <div class="stack-left">
+                <div class="stack-ico" style="background:#EAF3DE;color:#27500A">My</div>
+                <div><div class="stack-name">MySQL 8.0</div><div class="stack-desc">Base de données principale</div></div>
+              </div>
+              <span class="pill pill-green">Actif</span>
+            </div>
+            <div class="stack-item">
+              <div class="stack-left">
+                <div class="stack-ico" style="background:#FAEEDA;color:#633806">Dk</div>
+                <div><div class="stack-name">Docker + Jenkins</div><div class="stack-desc">Conteneurisation · CI/CD</div></div>
+              </div>
+              <span class="pill pill-green">Actif</span>
+            </div>
+            <div class="stack-item" style="border:none">
+              <div class="stack-left">
+                <div class="stack-ico" style="background:#EEEDFE;color:#3C3489">Pr</div>
+                <div><div class="stack-name">Prometheus + Grafana</div><div class="stack-desc">Monitoring · Alerting · JVM</div></div>
+              </div>
+              <span class="pill pill-blue">Live</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ USERS ══ -->
+      <div id="section-users" class="section">
+        <div class="metrics metrics-3">
+          <div class="mc"><div class="mc-label">Total utilisateurs</div><div class="mc-val">1 248</div><div class="mc-sub up">+47 ce mois</div></div>
+          <div class="mc"><div class="mc-label">Comptes actifs</div><div class="mc-val">1 201</div><div class="mc-sub neutral">96.2% du total</div></div>
+          <div class="mc"><div class="mc-label">Comptes bloqués</div><div class="mc-val">47</div><div class="mc-sub dn">Sessions révoquées JWT</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
+            <div class="card-title" style="margin:0">Gestion des utilisateurs</div>
+            <div style="display:flex;gap:6px">
+              <span class="pill pill-blue">ADMIN</span>
+              <span class="pill pill-amber">MANAGER</span>
+              <span class="pill pill-gray">USER</span>
+            </div>
+          </div>
+          <table class="users-tbl">
+            <thead>
+              <tr>
+                <th style="width:33%">Utilisateur</th>
+                <th style="width:13%">Rôle</th>
+                <th style="width:12%">Statut</th>
+                <th style="width:18%">Dernière session</th>
+                <th style="width:24%">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="user-cell"><div class="av av-blue">AM</div><div><div class="u-name">Ahmed Mansouri</div><div class="u-email">a.mansouri@cvn.ca</div></div></div></td>
+                <td><span class="pill pill-blue">ADMIN</span></td>
+                <td><span class="pill pill-green">Actif</span></td>
+                <td style="font-size:11px;color:#888780">Il y a 3 min</td>
+                <td><button class="action-btn">Détails</button><button class="action-btn danger">Bloquer</button></td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="av av-teal">LB</div><div><div class="u-name">Leila Bensalem</div><div class="u-email">l.bensalem@cvn.ca</div></div></div></td>
+                <td><span class="pill pill-amber">MANAGER</span></td>
+                <td><span class="pill pill-green">Actif</span></td>
+                <td style="font-size:11px;color:#888780">Il y a 21 min</td>
+                <td><button class="action-btn">Détails</button><button class="action-btn danger">Bloquer</button></td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="av av-coral">KT</div><div><div class="u-name">Karim Trabelsi</div><div class="u-email">k.trabelsi@cvn.ca</div></div></div></td>
+                <td><span class="pill pill-gray">USER</span></td>
+                <td><span class="pill pill-amber">Inactif</span></td>
+                <td style="font-size:11px;color:#888780">Hier 14:32</td>
+                <td><button class="action-btn">Détails</button><button class="action-btn danger">Bloquer</button></td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="av av-purple">NE</div><div><div class="u-name">Nadia Elloumi</div><div class="u-email">n.elloumi@cvn.ca</div></div></div></td>
+                <td><span class="pill pill-gray">USER</span></td>
+                <td><span class="pill pill-red">Bloqué</span></td>
+                <td style="font-size:11px;color:#888780">Il y a 3 jours</td>
+                <td><button class="action-btn">Détails</button><button class="action-btn success">Activer</button></td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="av av-green">MR</div><div><div class="u-name">Mohamed Riahi</div><div class="u-email">m.riahi@cvn.ca</div></div></div></td>
+                <td><span class="pill pill-amber">MANAGER</span></td>
+                <td><span class="pill pill-green">Actif</span></td>
+                <td style="font-size:11px;color:#888780">Il y a 1h</td>
+                <td><button class="action-btn">Détails</button><button class="action-btn danger">Bloquer</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══ SECURITY ══ -->
+      <div id="section-security" class="section">
+        <div class="grid2 grid2-eq">
+          <div class="card">
+            <div class="card-title">Configuration JWT · Spring Security</div>
+            <div class="jwt-item">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="jwt-ico" style="background:#E6F1FB"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="7" width="9" height="7" rx="1.5" stroke="#185FA5" stroke-width="1.3"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="#185FA5" stroke-width="1.3"/></svg></div>
+                <div><div class="stack-name">Token JWT · HS512</div><div class="stack-desc">Expiration : 24h · Refresh : 7 jours</div></div>
+              </div>
+              <span class="pill pill-green">Actif</span>
+            </div>
+            <div class="jwt-item">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="jwt-ico" style="background:#EAF3DE"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 3.8v5C2 12 5 14.5 8 15c3-.5 6-3 6-6.2V3.8L8 1z" fill="#3B6D11"/></svg></div>
+                <div><div class="stack-name">Gestion des rôles</div><div class="stack-desc">ADMIN · MANAGER · USER</div></div>
+              </div>
+              <span class="pill pill-green">3 rôles</span>
+            </div>
+            <div class="jwt-item">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="jwt-ico" style="background:#FCEBEB"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#A32D2D" stroke-width="1.3"/><path d="M8 4.5v3.8l2.2 2.2" stroke="#A32D2D" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                <div><div class="stack-name">Sessions révoquées</div><div class="stack-desc">14 tokens blacklistés · auto-nettoyage 24h</div></div>
+              </div>
+              <span class="pill pill-red">Révoqué</span>
+            </div>
+            <div class="jwt-item">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="jwt-ico" style="background:#FAEEDA"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v4.5M8 10v.8" stroke="#854F0B" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8" r="6.5" stroke="#854F0B" stroke-width="1.3"/></svg></div>
+                <div><div class="stack-name">HTTPS · TLS 1.3</div><div class="stack-desc">Certificat valide jusqu'en déc. 2026</div></div>
+              </div>
+              <span class="pill pill-green">Sécurisé</span>
+            </div>
+            <div class="jwt-item" style="border:none">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="jwt-ico" style="background:#EEEDFE"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#534AB7" stroke-width="1.3"/><path d="M5.5 8h5M8 5.5v5" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                <div><div class="stack-name">CORS configuré</div><div class="stack-desc">Domaines autorisés définis · preflight géré</div></div>
+              </div>
+              <span class="pill pill-blue">OK</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Matrice des permissions</div>
+            <table class="role-matrix">
+              <thead>
+                <tr><th>Permission</th><th>ADMIN</th><th>MANAGER</th><th>USER</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Gérer utilisateurs</td><td class="check">✓</td><td class="cross">✗</td><td class="cross">✗</td></tr>
+                <tr><td>Tableau de bord</td><td class="check">✓</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>Modifier modules</td><td class="check">✓</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>Accès API REST</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+                <tr><td>Consulter logs</td><td class="check">✓</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>Gérer pipeline</td><td class="check">✓</td><td class="cross">✗</td><td class="cross">✗</td></tr>
+                <tr><td>Révoquer tokens</td><td class="check">✓</td><td class="cross">✗</td><td class="cross">✗</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PIPELINE ══ -->
+      <div id="section-pipeline" class="section">
+        <div class="metrics metrics-4">
+          <div class="mc"><div class="mc-label">Builds totaux</div><div class="mc-val">312</div><div class="mc-sub neutral">Depuis lancement</div></div>
+          <div class="mc"><div class="mc-label">Taux de succès</div><div class="mc-val">94<small>%</small></div><div class="mc-sub up">293 builds réussis</div></div>
+          <div class="mc"><div class="mc-label">Durée moyenne</div><div class="mc-val">2m29</div><div class="mc-sub neutral">Full pipeline</div></div>
+          <div class="mc"><div class="mc-label">Artifacts Nexus</div><div class="mc-val">48</div><div class="mc-sub up">cvn-backend snapshots</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Historique des builds — Jenkins</div>
+          <div style="overflow-x:auto">
+            <div style="min-width:560px">
+              <div style="display:flex;gap:3px;margin-bottom:5px;padding-left:120px">
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Checkout</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Build</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">JaCoCo</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">SonarQube</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">JUnit</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Nexus</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Docker build</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Docker push</div>
+                <div style="flex:1;text-align:center;font-size:9px;color:#888780">Compose</div>
+                <div style="flex:0 0 50px;text-align:right;font-size:9px;color:#888780">Durée</div>
+              </div>
+
+              <!-- Build #88 -->
+              <div style="display:flex;align-items:center;gap:3px;margin-bottom:8px">
+                <div style="flex:0 0 120px">
+                  <span class="pipe-branch">#88</span>
+                  <div class="pipe-ref">release/v2.4.1</div>
+                </div>
+                <div class="stages">
+                  <div class="st ok">2s</div><div class="st ok">8s</div><div class="st ok">5s</div>
+                  <div class="st ok">43s</div><div class="st ok">20s</div><div class="st ok">7s</div>
+                  <div class="st ok">5s</div><div class="st ok">8s</div><div class="st ok">7s</div>
+                </div>
+                <div class="pipe-dur">2m25</div>
+              </div>
+
+              <!-- Build #87 -->
+              <div style="display:flex;align-items:center;gap:3px;margin-bottom:8px">
+                <div style="flex:0 0 120px">
+                  <span class="pipe-branch">#87</span>
+                  <div class="pipe-ref">fix/auth-bug</div>
+                </div>
+                <div class="stages">
+                  <div class="st ok">2s</div><div class="st ok">11s</div><div class="st ok">7s</div>
+                  <div class="st fail">54s</div><div class="st skip">—</div><div class="st skip">—</div>
+                  <div class="st skip">—</div><div class="st skip">—</div><div class="st skip">—</div>
+                </div>
+                <div class="pipe-dur">1m14</div>
+              </div>
+
+              <!-- Build #86 -->
+              <div style="display:flex;align-items:center;gap:3px;margin-bottom:8px">
+                <div style="flex:0 0 120px">
+                  <span class="pipe-branch" style="background:#FAEEDA;color:#633806">#86</span>
+                  <div class="pipe-ref">refactor/api</div>
+                </div>
+                <div class="stages">
+                  <div class="st ok">2s</div><div class="st ok">9s</div><div class="st run">...</div>
+                  <div class="st skip">—</div><div class="st skip">—</div><div class="st skip">—</div>
+                  <div class="st skip">—</div><div class="st skip">—</div><div class="st skip">—</div>
+                </div>
+                <div class="pipe-dur">En cours</div>
+              </div>
+
+              <!-- Build #85 -->
+              <div style="display:flex;align-items:center;gap:3px">
+                <div style="flex:0 0 120px">
+                  <span class="pipe-branch">#85</span>
+                  <div class="pipe-ref">feature/jwt-v2</div>
+                </div>
+                <div class="stages">
+                  <div class="st ok">2s</div><div class="st ok">10s</div><div class="st ok">6s</div>
+                  <div class="st ok">48s</div><div class="st ok">22s</div><div class="st ok">8s</div>
+                  <div class="st ok">6s</div><div class="st ok">7s</div><div class="st ok">8s</div>
+                </div>
+                <div class="pipe-dur">2m37</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-legend">
+            <div class="leg-item"><div class="leg-dot" style="background:#EAF3DE;border:1px solid #639922"></div>Succès</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#FCEBEB;border:1px solid #E24B4A"></div>Échec</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#FAEEDA;border:1px solid #BA7517"></div>En cours</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#F1EFE8;border:1px solid #e0ddd5"></div>Ignoré</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MONITORING ══ -->
+      <div id="section-monitoring" class="section">
+        <div class="metrics metrics-3">
+          <div class="mc"><div class="mc-label">Uptime application</div><div class="mc-val">4.4 <small>min</small></div><div class="mc-sub neutral">Dernier restart : 13:02:24</div></div>
+          <div class="mc"><div class="mc-label">Heap JVM</div><div class="mc-val">19.9<small>%</small></div><div class="mc-sub up">~102 MB / 512 MB max</div></div>
+          <div class="mc"><div class="mc-label">Non-Heap JVM</div><div class="mc-val">8.2<small>%</small></div><div class="mc-sub up">12 450 classes chargées</div></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">Grafana — métriques JVM (Spring Boot Actuator)</div>
+            <div class="gauge-grid">
+              <div class="gauge-card">
+                <div class="gauge-val green">19.9%</div>
+                <div class="gauge-lbl">Heap JVM</div>
+                <div class="gauge-sub">Normal · ~102 MB</div>
+              </div>
+              <div class="gauge-card">
+                <div class="gauge-val green">8.2%</div>
+                <div class="gauge-lbl">Non-Heap JVM</div>
+                <div class="gauge-sub">Normal · Metaspace</div>
+              </div>
+              <div class="gauge-card">
+                <div class="gauge-val amber">64%</div>
+                <div class="gauge-lbl">Process files</div>
+                <div class="gauge-sub">À surveiller · 640/1024</div>
+              </div>
+            </div>
+            <div class="card-title" style="margin-top:0.5rem">Threads JVM</div>
+            <div class="prom-row">
+              <div class="prom-label">Threads actifs</div>
+              <div class="prom-track"><div class="prom-fill" style="width:38%;background:#378ADD"></div></div>
+              <div class="prom-val">19 / 50</div>
+            </div>
+            <div class="prom-row" style="margin-bottom:0">
+              <div class="prom-label">Threads démon</div>
+              <div class="prom-track"><div class="prom-fill" style="width:28%;background:#378ADD"></div></div>
+              <div class="prom-val">14 / 50</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Prometheus — infrastructure</div>
+            <div class="prom-row">
+              <div class="prom-label">CPU serveur</div>
+              <div class="prom-track"><div class="prom-fill" style="width:42%;background:#378ADD"></div></div>
+              <div class="prom-val">42%</div>
+            </div>
+            <div class="prom-row">
+              <div class="prom-label">RAM serveur</div>
+              <div class="prom-track"><div class="prom-fill" style="width:68%;background:#BA7517"></div></div>
+              <div class="prom-val">68%</div>
+            </div>
+            <div class="prom-row">
+              <div class="prom-label">Containers Docker</div>
+              <div class="prom-track"><div class="prom-fill" style="width:50%;background:#639922"></div></div>
+              <div class="prom-val">5 / 10</div>
+            </div>
+            <div class="prom-row">
+              <div class="prom-label">Connexions DB</div>
+              <div class="prom-track"><div class="prom-fill" style="width:55%;background:#378ADD"></div></div>
+              <div class="prom-val">22 / 40</div>
+            </div>
+            <div class="prom-row">
+              <div class="prom-label">Nexus registry</div>
+              <div class="prom-track"><div class="prom-fill" style="width:30%;background:#639922"></div></div>
+              <div class="prom-val">OK</div>
+            </div>
+            <div class="prom-row" style="margin-bottom:0">
+              <div class="prom-label">Requêtes HTTP/s</div>
+              <div class="prom-track"><div class="prom-fill" style="width:22%;background:#378ADD"></div></div>
+              <div class="prom-val">112/s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SONARQUBE ══ -->
+      <div id="section-sonar" class="section">
+        <div class="card" style="margin-bottom:1rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <div>
+              <div style="font-size:15px;font-weight:600;color:#1a1a1a">CVN Solutions · Backend Java</div>
+              <div style="font-size:12px;color:#888780;margin-top:3px">Analyse il y a 1 jour · Java, XML · <strong>4 400 lignes de code</strong></div>
+            </div>
+            <span class="pill pill-green" style="font-size:12px;padding:5px 12px">Quality Gate : Passed</span>
+          </div>
+          <div class="sonar-grid">
+            <div class="sonar-item">
+              <div class="sonar-grade grade-d">D</div>
+              <div class="sonar-count">25</div>
+              <div class="sonar-label">Bugs</div>
+            </div>
+            <div class="sonar-item">
+              <div class="sonar-grade grade-e">E</div>
+              <div class="sonar-count">6</div>
+              <div class="sonar-label">Vulnérabilités</div>
+            </div>
+            <div class="sonar-item">
+              <div class="sonar-grade grade-e">E</div>
+              <div class="sonar-count">0.0%</div>
+              <div class="sonar-label">Hotspots revus</div>
+            </div>
+            <div class="sonar-item">
+              <div class="sonar-grade grade-a">A</div>
+              <div class="sonar-count">346</div>
+              <div class="sonar-label">Code smells</div>
+            </div>
+            <div class="sonar-item">
+              <div class="sonar-count" style="font-size:22px">13.9%</div>
+              <div class="sonar-label">Couverture tests</div>
+            </div>
+            <div class="sonar-item">
+              <div class="sonar-grade grade-a">A</div>
+              <div class="sonar-count">1.0%</div>
+              <div class="sonar-label">Duplications</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recommandations d'amélioration</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot fail"></div><div class="tl-line"></div></div>
+              <div><div class="tl-text">Augmenter la couverture de tests JUnit / Mockito</div><div class="tl-sub">Actuellement 13.9% — cible recommandée : 80%</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot fail"></div><div class="tl-line"></div></div>
+              <div><div class="tl-text">Corriger les 6 vulnérabilités de sécurité</div><div class="tl-sub">Spring Security · gestion des dépendances Maven</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot run"></div><div class="tl-line"></div></div>
+              <div><div class="tl-text">Réviser les security hotspots détectés</div><div class="tl-sub">0 hotspot revu sur les 6 identifiés — à traiter</div></div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot ok"></div></div>
+              <div><div class="tl-text">Duplications maîtrisées</div><div class="tl-sub">1.0% — bien en dessous du seuil critique (3%)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function nav(el, section) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + section).classList.add('active');
+    const titles = {
+      overview: "Vue d'ensemble",
+      users: "Utilisateurs",
+      security: "Sécurité / JWT",
+      pipeline: "Pipeline CI/CD",
+      monitoring: "Monitoring Grafana",
+      sonar: "SonarQube"
+    };
+    document.getElementById('page-title').textContent = titles[section] || section;
+  }
+</script>
+</body>
+</html>
